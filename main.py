@@ -2,7 +2,7 @@
 
 '''
 import os
-from parsers import bikerawdata
+from dataset_creators import bikerawdata
 
 TPE_FILE_ROOT = './bike_raw_data/taipei'
 HEL_FILE_ROOT = './bike_raw_data/helsinki'

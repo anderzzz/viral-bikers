@@ -3,6 +3,12 @@
 '''
 import pandas as pd
 
+from .bikesharesystem import BikeShareSystem
+
+taipei_system = BikeShareSystem(city_name='Taipei', country_name='Taiwan',
+                                bike_share_name='YouBike',
+                                data_url_source='https://data.taipei/#/dataset/detail?id=9d9de741-c814-450d-b6bb-af8c438f08e5')
+
 def parse_taipei_file(data_file):
     '''Parser function for Taipei raw data file
 
