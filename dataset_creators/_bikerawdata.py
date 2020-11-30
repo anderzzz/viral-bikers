@@ -33,7 +33,7 @@ class BikeRawData(object):
     def add_system(self, city_label, bikesharesystem_data):
 
         if not isinstance(bikesharesystem_data, BikeShareSystem):
-            raise ValueError('The `bikesharesystem_data` argument not an instance of `BikeShareSystem`')
+            raise ValueError('The `bikesharesystem_data` argument not an instance of {}'.format(BikeShareSystem))
         self._systems[city_label] = bikesharesystem_data
         self._parsers[city_label] = None
 
