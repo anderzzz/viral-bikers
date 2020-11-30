@@ -1,4 +1,6 @@
-'''Core part of parser of raw data
+'''Core parser class that defines a common interface to all city raw data sets
+
+Written by: Anders Ohrn 2020
 
 '''
 from .bikesharesystem import BikeShareSystem, BikeDataContentDescription
@@ -7,9 +9,10 @@ class DataTypeDocumentationError(Exception):
     pass
 
 class BikeRawData(object):
+    '''Parser of all city data sets on bike rental events
 
+    '''
     def __init__(self):
-
         self._parsers = {}
         self._systems = {}
 
@@ -17,18 +20,34 @@ class BikeRawData(object):
         return self._parsers.keys()
 
     def parse(self, city_label, data_files, kwargs={}):
+        '''Parser generator method for data for specified city
 
+        Args:
+            city_label : Label of city to obtain data for. For available city labels see `keys` method.
+            data_files : Path to folder with raw data files
+            kwargs (optional) : Named arguments to pass to the parser function
+
+        Yields:
+            df : DataFrame with a batch of data
+
+        '''
         return self._parsers[city_label](data_files, **kwargs)
 
-    def add_parser(self, city_label, parser_func, multi_file_wrapper=True, strict=True):
+    def add_parser(self, city_label, parser_func, strict=True):
+        '''Add parser method for a specific city
+
+        Args:
+            city_label : Label of city to add the parser function for
+            parser_func : Callable function that can process a single file of raw data. The function must
+                return a DataFrame of data plus a dictionary of data content descriptions, see class documentation
+            strict (optional) : If True, performs checks on return data from parser function
+
+        '''
 
         if not city_label in self._parsers:
             raise RuntimeError('Adding parser for {} must be preceded by adding system for {}'.format(city_label, city_label))
 
-        if multi_file_wrapper:
-            self._parsers[city_label] = self._raw_file_wrapper(parser_func, strict)
-        else:
-            self._parsers[city_label] = parser_func
+        self._parsers[city_label] = self._raw_file_wrapper(parser_func, strict)
 
     def add_system(self, city_label, bikesharesystem_data):
 

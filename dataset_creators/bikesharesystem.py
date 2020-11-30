@@ -1,4 +1,6 @@
-'''Meta data on each bike share system
+'''Meta data on bike share system and its data
+
+Written by: Anders Ohrn 2020
 
 '''
 from dataclasses import dataclass

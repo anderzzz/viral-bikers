@@ -1,9 +1,11 @@
 '''Parser and data cleansing for Helsinki bike data
 
+Written by: Anders Ohrn 2020
+
 '''
 import pandas as pd
 
-from .bikesharesystem import BikeShareSystem, BikeDataContentDescription
+from dataset_creators.bikesharesystem import BikeShareSystem, BikeDataContentDescription
 
 RAWDATA_KEYS = ['start_rental_date_time', 'end_rental_date_time',
                 'start_station_id', 'start_station_name',

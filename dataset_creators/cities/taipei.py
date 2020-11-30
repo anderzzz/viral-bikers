@@ -1,11 +1,13 @@
 '''Parser and data cleansing for Taipei bike data
 
+Written by: Anders Ohrn 2020
+
 '''
 import pandas as pd
 import io
 import pinyin
 
-from .bikesharesystem import BikeShareSystem, BikeDataContentDescription
+from dataset_creators.bikesharesystem import BikeShareSystem, BikeDataContentDescription
 
 RAWDATA_KEYS = ['start_rental_date_hour', 'start_station_name_tradchinese',
                 'end_rental_date_hour', 'end_station_name_tradchinese',
