@@ -7,7 +7,8 @@ Written by: Anders Ohrn 2020
 '''
 from dataset_creators.cities import parse_taipei_file, taipei_system, \
                                     parse_london_file, london_system, \
-                                    parse_helsiki_file, helsinki_system
+                                    parse_helsiki_file, helsinki_system, \
+                                    parse_toronto_file, toronto_system
 
 from ._bikerawdata import BikeRawData
 
@@ -18,6 +19,8 @@ bikerawdata.add_system(city_label='helsinki', bikesharesystem_data=helsinki_syst
 bikerawdata.add_parser(city_label='helsinki', parser_func=parse_helsiki_file)
 bikerawdata.add_system(city_label='london', bikesharesystem_data=london_system)
 bikerawdata.add_parser(city_label='london', parser_func=parse_london_file)
+bikerawdata.add_system(city_label='toronto', bikesharesystem_data=toronto_system)
+bikerawdata.add_parser(city_label='toronto', parser_func=parse_toronto_file)
 
 def compile_data(city_labels=None):
     '''Compile all data into common structure
