@@ -1,11 +1,10 @@
 '''Core part of parser of raw data
 
 '''
-from .bikesharesystem import BikeShareSystem
+from .bikesharesystem import BikeShareSystem, BikeDataContentDescription
 
-COL_NAMES = ['start_rental_dt', 'start_station_name', 'start_station_id', 'start_rental_date', 'start_rental_time',
-             'end_rental_dt', 'end_station_name', 'end_station_id', 'end_rental_date', 'end_rental_time',
-             'duration', 'distance', 'date']
+class DataTypeDocumentationError(Exception):
+    pass
 
 class BikeRawData(object):
 
@@ -42,17 +41,24 @@ class BikeRawData(object):
 
         def wrapper(data_files):
             for data_file in data_files:
-                df = func(data_file)
+                df, df_units = func(data_file)
                 if strict:
-                    self._validate_(df)
+                    self._validate_(df, df_units)
 
                 yield df
 
         return wrapper
 
-    def _validate_(self, df):
+    def _validate_(self, df, df_units):
 
-        if not set(df.columns.to_list()).issubset(set(COL_NAMES)):
-            raise KeyError('The column names after raw data parsing must be subset of `COL_NAMES`')
+        if not set(df.columns) <= set(df_units.keys()):
+            raise DataTypeDocumentationError('The DataFrame contains columns without data type documentation')
+
+        if not set(df_units.keys()) <= set(df.columns):
+            raise DataTypeDocumentationError('The data type documentation contains entries for columns absent from the DataFrame')
+
+        for key, item in df_units.items():
+            if not isinstance(item, BikeDataContentDescription):
+                raise TypeError('Entry {} in data type documentation not of type {}'.format(key, BikeDataContentDescription))
 
 
