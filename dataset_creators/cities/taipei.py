@@ -25,8 +25,8 @@ taipei_data_types = {RAWDATA_KEYS[0] : BikeDataContentDescription(unit='YYYY-MM-
                                            content_description='Date and hour bike rental ends'),
                      RAWDATA_KEYS[3] : BikeDataContentDescription(unit='',
                                            content_description='Name of station at which rental ends in traditional Chinese'),
-                     RAWDATA_KEYS[4] : BikeDataContentDescription(unit='HH:MM:SS',
-                                           content_description='Duration of rental event, seconds resolution'),
+                     RAWDATA_KEYS[4] : BikeDataContentDescription(unit='seconds',
+                                           content_description='Duration of travel'),
                      RAWDATA_KEYS[5] : BikeDataContentDescription(unit='YYYY-MM-DD',
                                            content_description='Date bike rental starts')}
 
@@ -34,7 +34,7 @@ def parse_taipei_file(data_file):
     '''Parser function for Taipei raw data file
 
     '''
-
+    print (data_file)
     # A small number of lines (~10) in raw data files are weirdly encoded. They are discarded entirely
     invalid_lines = 0
     valid_lines = []
@@ -52,10 +52,14 @@ def parse_taipei_file(data_file):
                          header=0)
 
     # Convert into Pandas time units
-    df_raw['start_rental_date_hour'] = pd.to_datetime(df_raw['start_rental_date_hour'])
-    df_raw['end_rental_date_hour'] = pd.to_datetime(df_raw['end_rental_date_hour'])
-    df_raw['start_date'] = pd.to_datetime(df_raw['start_date'])
+    df_raw['start_rental_date_hour'] = pd.to_datetime(df_raw['start_rental_date_hour'], format='%Y-%m-%d %H:%M:%S')
+    df_raw['end_rental_date_hour'] = pd.to_datetime(df_raw['end_rental_date_hour'], format='%Y-%m-%d %H:%M:%S')
+    df_raw['start_date'] = pd.to_datetime(df_raw['start_date'], format='%Y-%m-%d')
+
+    # Duration to seconds only
     df_raw['duration'] = pd.to_timedelta(df_raw['duration'])
+    df_raw['duration'] = df_raw['duration'].apply(lambda x: x.total_seconds())
+    df_raw['duration'] = df_raw['duration'].astype(str)
 
     # Add columns: pinyin variation to station names
     df_raw['start_station_name_pinyin'] = df_raw['start_station_name_tradchinese'].apply(pinyin.get,

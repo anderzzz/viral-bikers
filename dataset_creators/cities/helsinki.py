@@ -44,8 +44,7 @@ def parse_helsiki_file(data_file):
                          header=0)
 
     # Convert into Pandas time units
-    df_raw['start_rental_date_time'] = pd.to_datetime(df_raw['start_rental_date_time'])
-    df_raw['end_rental_date_time'] = pd.to_datetime(df_raw['end_rental_date_time'])
-    df_raw['duration'] = pd.to_timedelta(df_raw['duration'], unit='s')
+    df_raw['start_rental_date_time'] = pd.to_datetime(df_raw['start_rental_date_time'], format='%Y-%m-%dT%H:%M:%S')
+    df_raw['end_rental_date_time'] = pd.to_datetime(df_raw['end_rental_date_time'], format='%Y-%m-%dT%H:%M:%S')
 
     return df_raw, helsinki_data_types

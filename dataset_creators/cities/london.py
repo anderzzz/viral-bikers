@@ -39,15 +39,13 @@ def parse_london_file(data_file):
     '''Parser function for London raw data file
 
     '''
-    print (data_file)
     df_raw = pd.read_csv(data_file,
                          names=RAWDATA_KEYS,
                          encoding='utf_8',
                          header=0)
 
     # Convert into Pandas time units
-    df_raw['start_rental_date_time'] = pd.to_datetime(df_raw['start_rental_date_time'])
-    df_raw['end_rental_date_time'] = pd.to_datetime(df_raw['end_rental_date_time'])
-    df_raw['duration'] = pd.to_timedelta(df_raw['duration'], unit='s')
+    df_raw['start_rental_date_time'] = pd.to_datetime(df_raw['start_rental_date_time'], format='%d/%m/%Y %H:%M:%S')
+    df_raw['end_rental_date_time'] = pd.to_datetime(df_raw['end_rental_date_time'], format='%d/%m/%Y %H:%M:%S')
 
     return df_raw, london_data_types
