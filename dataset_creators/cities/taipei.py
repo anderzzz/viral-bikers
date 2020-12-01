@@ -51,6 +51,11 @@ def parse_taipei_file(data_file):
                          encoding='utf_8',
                          header=0)
 
+    # In 41 instances in May 2018 the duration is not a time, but Chinese characters saying "number two exit".
+    # These are removed. Most likely part of a name misplaced.
+    if '201805' in data_file:
+        df_raw = df_raw.loc[df_raw['duration'].str.count(':') == 2]
+
     # Convert into Pandas time units
     df_raw['start_rental_date_hour'] = pd.to_datetime(df_raw['start_rental_date_hour'], format='%Y-%m-%d %H:%M:%S')
     df_raw['end_rental_date_hour'] = pd.to_datetime(df_raw['end_rental_date_hour'], format='%Y-%m-%d %H:%M:%S')
@@ -60,6 +65,10 @@ def parse_taipei_file(data_file):
     df_raw['duration'] = pd.to_timedelta(df_raw['duration'])
     df_raw['duration'] = df_raw['duration'].apply(lambda x: x.total_seconds())
     df_raw['duration'] = df_raw['duration'].astype(str)
+
+    # Prior to pinyin addition, missing entries are converted to empty strings
+    df_raw['start_station_name_tradchinese'] = df_raw['start_station_name_tradchinese'].fillna(value='')
+    df_raw['end_station_name_tradchinese'] = df_raw['end_station_name_tradchinese'].fillna(value='')
 
     # Add columns: pinyin variation to station names
     df_raw['start_station_name_pinyin'] = df_raw['start_station_name_tradchinese'].apply(pinyin.get,
