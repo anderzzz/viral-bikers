@@ -38,6 +38,7 @@ def parse_helsiki_file(data_file):
     '''Parser function for Helsinki raw data file
 
     '''
+    print (data_file)
     df_raw = pd.read_csv(data_file,
                          names=RAWDATA_KEYS,
                          encoding='utf_8',
