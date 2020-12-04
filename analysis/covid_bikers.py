@@ -128,3 +128,15 @@ fig_tot_week_comp_tor.xaxis.major_label_overrides = {5:'Jan 27', 10: 'March 2', 
 show(gridplot([fig_tot_week_comp_tpe, fig_tot_week_comp_lon, fig_tot_week_comp_tor],
               ncols=1, plot_width=800, plot_height=300))
 
+df_tpe_prob = tpe_bike.analyze('prob_dist_deviate')
+raise RuntimeError
+
+df_onestation = pd.read_csv('tmp.csv', index_col=0)
+print (df_onestation)
+source = ColumnDataSource(df_onestation.reset_index())
+fig_station = figure()
+fig_station.line(x='index', y='counts', source=source)
+show(fig_station)
+
+raise RuntimeError
+tpe_bike.analyze('station_to_station')
