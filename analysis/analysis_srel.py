@@ -3,9 +3,8 @@
 '''
 import pandas as pd
 import numpy as np
-from scipy.spatial.distance import jensenshannon
-from sklearn.cluster import AgglomerativeClustering
-import seaborn as sns
+from scipy.spatial.distance import jensenshannon, mahalanobis
+from scipy import linalg
 
 def gather_root(blob, chunksize=100000,
                 filter_func=None, **filter_func_kwargs):
@@ -88,6 +87,16 @@ def cmp_pdist_station_hour(df, station_key):
 
     return df_freq
 
+def cmp_pdist_station_day_hour(df, station_key):
+    '''Bla bla
+
+    '''
+    print (df)
+    group = df.groupby([station_key, 'year', 'week', 'day', 'hour', 'satsun'])
+    df_count = group.mean()
+    print (df_count)
+    raise RuntimeError
+
 def cmp_count_range_station_hour(df, station_key):
     '''Bla bla
 
@@ -98,9 +107,10 @@ def cmp_count_range_station_hour(df, station_key):
     df_stat_q3 = group['counts'].quantile(q=0.75)
     df_stat_q0 = group['counts'].quantile(q=0.05)
     df_stat_q4 = group['counts'].quantile(q=0.95)
+    df_stat_mean = group['counts'].mean()
 
     df = pd.DataFrame.from_dict({'q_25' : df_stat_q1, 'q_75' : df_stat_q3, 'median' : df_stat_q2,
-                                 'q_05' : df_stat_q0, 'q_95' : df_stat_q4})
+                                 'q_05' : df_stat_q0, 'q_95' : df_stat_q4, 'mean' : df_stat_mean})
 
     return df
 
@@ -114,10 +124,14 @@ def cmp_count_cov_station_hour(df, station_key):
         df_c = df_group.pivot(index=[station_key, 'satsun', 'year', 'week', 'day'], columns='hour', values='counts')
         df_c = df_c.fillna(value=0.0)
         df_cov = df_c.cov()
+        df_cov_inv = pd.DataFrame(linalg.inv(df_cov))
         df_cov = df_cov.stack()
+        df_cov_inv = df_cov_inv.stack()
         index = pd.MultiIndex.from_tuples([(key[0], key[1], x1, x2) for x1, x2 in df_cov.index.tolist()],
                                           names=[station_key, 'satsun', 'hour1', 'hour2'])
-        df_ = pd.DataFrame(df_cov.values, index=index, columns=['covariance'])
+        df_1 = pd.DataFrame(df_cov.values, index=index, columns=['covariance'])
+        df_2 = pd.DataFrame(df_cov_inv.values, index=index, columns=['covariance_inv'])
+        df_ = df_1.join(df_2)
         collections.append(df_)
 
     return pd.concat(collections)
@@ -148,3 +162,51 @@ def cmp_js_station_station(df, station_key):
     df_weekend = _js(df_2)
 
     return df_weekday, df_weekend
+
+def cmp_add_zeros(df, station_key):
+    '''Bla bla
+
+    '''
+    existing_tups = list(df.groupby(['year', 'week', 'day', 'satsun', station_key]).groups.keys())
+    new_index_tups = []
+    for tup in existing_tups:
+        for hour in range(24):
+            tupper = list(tup)
+            tupper.append(hour)
+            new_index_tups.append(tuple(tupper))
+    new_mindex = pd.MultiIndex.from_tuples(new_index_tups, names=['year', 'week', 'day', 'satsun', station_key, 'hour'])
+
+    df = df.set_index(['year', 'week', 'day', 'satsun', station_key, 'hour'])
+    df_expand = df.reindex(new_mindex, fill_value=0.0)
+
+    return df_expand
+
+def cmp_deviation(df_m, df_cov, df_2020, station_key):
+    '''Bla bla
+
+    '''
+    print (df_m)
+    print (df_cov)
+    print (df_2020.columns)
+    print (df_2020)
+
+    df_merged = df_2020.join(df_m)[['counts', 'mean']]
+
+    for weekend in [False, True]:
+        df_ = df_merged.loc[weekend]
+        df_ = df_.unstack('hour')
+        df_cov_ = df_cov.loc[(slice(None), weekend, slice(None), slice(None))]
+        distances = []
+        for key, row in df_.iterrows():
+            u = row.loc['mean'].values
+            v = row.loc['counts'].values
+            cov_inv_np = df_cov_.loc[key[0]]['covariance_inv'].unstack().values
+            deviation = mahalanobis(u, v, cov_inv_np)
+            distances.append(deviation)
+
+        if weekend:
+            df_dists_weekend = pd.DataFrame(distances, index=df_.index, columns=['mahalanobis'])
+        else:
+            df_dists_weekday = pd.DataFrame(distances, index=df_.index, columns=['mahalanobis'])
+
+    return df_dists_weekday, df_dists_weekend

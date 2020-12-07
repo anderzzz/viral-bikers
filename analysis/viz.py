@@ -99,22 +99,44 @@ def viz_cov_by_hour(df):
 
     return p
 
-def viz_js_stations(df):
+def viz_dist_map(df):
 
-    print (df.index)
-    #model = TSNE(metric='precomputed')
-    model = MDS(dissimilarity='precomputed')
+    print (df)
+    df = df.reset_index()
+    df = df.sort_values(by=['station', 'year', 'week', 'day'])
+    print (df)
+    raise RuntimeError
+    p = figure()
+    p = _axis_adjust(p)
+    source = ColumnDataSource(df)
+
+    max_dist = df.mahalanobis.max()
+    mapper = LinearColorMapper(palette=brewer['PRGn'][11], low=0.0, high=max_dist)
+
+
+def viz_js_stations(df, manifold='TSNE'):
+
+    if manifold == 'TSNE':
+        model = TSNE(metric='precomputed')
+    elif manifold == 'MDS':
+        model = MDS(dissimilarity='precomputed')
+    else:
+        raise ValueError('Unknown manifold method: {}'.format(manifold))
     model.fit(df.values)
 
     p = figure()
+    p = _axis_adjust(p)
     source = ColumnDataSource({'x' : model.embedding_[:, 0], 'y' : model.embedding_[:, 1],
                                'station_key' : df.index})
 
-    p.circle(x='x', y='y', source=source, fill_color=brewer['PRGn'][7][0])
+    p.circle(x='x', y='y', source=source, fill_color=brewer['PRGn'][7][0], line_color=brewer['PRGn'][7][0])
     labels = LabelSet(x='x', y='y', text='station_key', level='glyph',
                       x_offset=5, y_offset=5, source=source, render_mode='canvas',
                       text_font_size='8px')
-
+    p.xaxis.axis_label = 'TSNE coordinate 1'
+    p.yaxis.axis_label = 'TSNE coordinate 2'
+    p.yaxis.major_tick_line_color = 'white'
+    p.xaxis.major_tick_line_color = 'white'
 #    citation = Label(x=70, y=70, x_units='screen', y_units='screen',
 #                     text='Collected by Luke C. 2016-04-01', render_mode='css',
 #                     border_line_color='black', border_line_alpha=1.0,
@@ -123,8 +145,5 @@ def viz_js_stations(df):
     p.add_layout(labels)
 #    p.add_layout(citation)
     return p
-
-
-
 
 
