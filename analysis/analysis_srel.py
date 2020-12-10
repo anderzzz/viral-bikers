@@ -57,9 +57,10 @@ def cmp_total_counts(df_s, df_e, station_key_s, station_key_e):
     df_ = pd.merge(df_s, df_e,
                    left_on=[station_key_s, 'year', 'week', 'day', 'satsun', 'hour'],
                    right_on=[station_key_e, 'year', 'week', 'day', 'satsun', 'hour'],
-                   how='outer', suffixes=('_start', '_end')).fillna(0.0)
+                   how='outer', suffixes=('_start', '_end')).fillna(-1)
     df_['counts'] = df_['counts_start'] + df_['counts_end']
-    df_['station'] = df_[[station_key_s, station_key_e]].max(axis=1)
+#    df_['station'] = df_[[station_key_s, station_key_e]].max(axis=1)
+    df_['station'] = np.where(df_[station_key_s] != -1, df_[station_key_s], df_[station_key_e])
     df_ = df_.drop(columns=['counts_start', 'counts_end', station_key_s, station_key_e])
 
     return df_
@@ -97,10 +98,24 @@ def cmp_pdist_station_day_hour(df, station_key):
     print (df_count)
     raise RuntimeError
 
+def cmp_cumfreq(df):
+    '''Bla bla
+
+    '''
+    val_counts = df.value_counts(normalize=True)
+    val_counts = val_counts.sort_index()
+    max_val = val_counts.index.max()
+    new_ind = pd.UInt64Index(range(int(max_val) + 1), name='rental_events')
+    val_counts = val_counts.reindex(new_ind, fill_value=0.0)
+    val_counts = val_counts.cumsum()
+
+    return val_counts
+
 def cmp_count_range_station_hour(df, station_key):
     '''Bla bla
 
     '''
+    df = cmp_add_zeros(df, station_key).reset_index()
     group = df.groupby([station_key, 'satsun', 'hour'])
     df_stat_q1 = group['counts'].quantile(q=0.25)
     df_stat_q2 = group['counts'].quantile(q=0.50)
@@ -112,7 +127,32 @@ def cmp_count_range_station_hour(df, station_key):
     df = pd.DataFrame.from_dict({'q_25' : df_stat_q1, 'q_75' : df_stat_q3, 'median' : df_stat_q2,
                                  'q_05' : df_stat_q0, 'q_95' : df_stat_q4, 'mean' : df_stat_mean})
 
-    return df
+    df_x = group['counts'].apply(cmp_cumfreq)
+
+    return df, df_x
+
+def cmp_count_range_station_d(df, station_key):
+    '''Bla bla
+
+    '''
+    df = cmp_add_zeros(df, station_key).reset_index()
+    df1 = df.groupby(['year','week','day','satsun','station']).sum().reset_index()
+    group = df1.groupby([station_key, 'satsun'])
+    df_stat_q1 = group['counts'].quantile(q=0.25)
+    df_stat_q2 = group['counts'].quantile(q=0.50)
+    df_stat_q3 = group['counts'].quantile(q=0.75)
+    df_stat_q0 = group['counts'].quantile(q=0.05)
+    df_stat_q4 = group['counts'].quantile(q=0.95)
+    df_stat_mean = group['counts'].mean()
+
+    df = pd.DataFrame.from_dict({'q_25' : df_stat_q1, 'q_75' : df_stat_q3, 'median' : df_stat_q2,
+                                 'q_05' : df_stat_q0, 'q_95' : df_stat_q4, 'mean' : df_stat_mean})
+
+    df_x = group['counts'].apply(cmp_cumfreq)
+    print (df)
+    print (df_x)
+
+    return df, df_x
 
 def cmp_count_cov_station_hour(df, station_key):
     '''Bla bla
@@ -163,6 +203,24 @@ def cmp_js_station_station(df, station_key):
 
     return df_weekday, df_weekend
 
+def cmp_js_station_station_cities(df, station_key):
+    '''Bla bla
+
+    '''
+    def _js(df):
+        df = df.reset_index()
+        df = df.pivot(columns='hour', values='freq', index=[station_key, 'city'])
+        df_ = df.T.corr(method=jensenshannon)
+        df_.values[[np.arange(df_.shape[0])] * 2] = 0.0
+        return df_
+
+    df_1 = df.loc[:, False, :, :]
+    df_weekday = _js(df_1)
+    df_2 = df.loc[:, True, :, :]
+    df_weekend = _js(df_2)
+
+    return df_weekday, df_weekend
+
 def cmp_add_zeros(df, station_key):
     '''Bla bla
 
@@ -181,32 +239,22 @@ def cmp_add_zeros(df, station_key):
 
     return df_expand
 
-def cmp_deviation(df_m, df_cov, df_2020, station_key):
+def cmp_deviation(df_2020, df_count_baseline, station_key):
     '''Bla bla
 
     '''
-    print (df_m)
-    print (df_cov)
-    print (df_2020.columns)
-    print (df_2020)
-
-    df_merged = df_2020.join(df_m)[['counts', 'mean']]
-
-    for weekend in [False, True]:
-        df_ = df_merged.loc[weekend]
-        df_ = df_.unstack('hour')
-        df_cov_ = df_cov.loc[(slice(None), weekend, slice(None), slice(None))]
-        distances = []
-        for key, row in df_.iterrows():
-            u = row.loc['mean'].values
-            v = row.loc['counts'].values
-            cov_inv_np = df_cov_.loc[key[0]]['covariance_inv'].unstack().values
-            deviation = mahalanobis(u, v, cov_inv_np)
-            distances.append(deviation)
-
-        if weekend:
-            df_dists_weekend = pd.DataFrame(distances, index=df_.index, columns=['mahalanobis'])
+    def _fit_percentile(s):
+        station_ = s.name[4]
+        satsun_ = s.name[3]
+        station_baseline = df_count_baseline.loc[station_, satsun_]
+        if station_baseline.index.max() < s.counts:
+            ret = 1.0
         else:
-            df_dists_weekday = pd.DataFrame(distances, index=df_.index, columns=['mahalanobis'])
+            ret = station_baseline.loc[s.counts]
 
-    return df_dists_weekday, df_dists_weekend
+        return ret
+
+    df_2020 = df_2020.groupby(['year','week','day','satsun','station']).sum()
+    df_2020['percentile'] = df_2020.apply(_fit_percentile, axis=1)
+
+    return df_2020[['counts','percentile']].reset_index()

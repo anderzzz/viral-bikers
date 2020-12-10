@@ -7,9 +7,10 @@ from bokeh.plotting import show
 from analysis.analysis_srel import gather_root, filter_date_range, cmp_counts_hour_resolve, cmp_stations_most_traffic, \
                                    cmp_pdist_station_hour, cmp_count_range_station_hour, \
                                    cmp_count_cov_station_hour, cmp_total_per_x, cmp_total_counts, \
-                                   cmp_js_station_station, cmp_deviation, cmp_pdist_station_day_hour, cmp_add_zeros
+                                   cmp_js_station_station, cmp_deviation, cmp_pdist_station_day_hour, cmp_add_zeros, \
+                                   cmp_count_range_station_d, cmp_js_station_station_cities
 from analysis.viz import viz_box_by_hour, viz_cov_by_hour, viz_js_stations, viz_pfunc_by_hour, \
-                         viz_pfunc_by_hour_33grid, viz_dist_map
+                         viz_pfunc_by_hour_33grid, viz_dist_map, viz_box_by_station, viz_js_stations_two, viz_comp_by_hour
 
 DATABLOB_TPE = '../data_blob/taipei_bikeshare.csv'
 DATABLOB_LON = '../data_blob/london_bikeshare.csv'
@@ -46,11 +47,16 @@ CITY_RUN = 'london'
 #
 #df = gather_root(CITY_DATA[CITY_RUN]['blob'],
 #                 filter_func=filter_date_range,
-#                 lower='2018-01-01', upper='2019-12-31', time_key=CITY_DATA[CITY_RUN]['time_key_s'])
-#
-#df.to_csv('tmp.csv')
+#                 lower='2019-01-01', upper='2019-12-31', time_key=CITY_DATA[CITY_RUN]['time_key_s'])
+
+#if CITY_RUN == 'taipei':
+    # Remove apparently flawed station from consideration
+#    df = df.loc[df[CITY_DATA[CITY_RUN]['station_key_s']] != '?公公園']
+#    df = df.loc[df[CITY_DATA[CITY_RUN]['station_key_e']] != '?公公園']
+
+#df.to_csv('tmp_lon.csv')
 #print (df)
-#df = pd.read_csv('tmp.csv', index_col=0)
+#df = pd.read_csv('tmp_tpe.csv', index_col=0)
 #
 #
 #  Create an aggregate rental events column, rather than start and end
@@ -62,6 +68,7 @@ CITY_RUN = 'london'
 #                               station_key=CITY_DATA[CITY_RUN]['station_key_e'],
 #                               time_key=CITY_DATA[CITY_RUN]['time_key_e'])
 #df = cmp_total_counts(df_s, df_e, CITY_DATA[CITY_RUN]['station_key_s'], CITY_DATA[CITY_RUN]['station_key_e'])
+#print (df)
 
 #
 # Aggregate system totals per week
@@ -74,33 +81,50 @@ CITY_RUN = 'london'
 #stations_index = cmp_stations_most_traffic(df, 0.25, station_key='station')
 #df = df.loc[df['station'].isin(stations_index)]
 #print (df)
-#df.to_csv('tmp1.csv')
-df = pd.read_csv('tmp1.csv', index_col=0)
+#df.to_csv('tmp1_tpe.csv')
+df = pd.read_csv('tmp1_lon.csv', index_col=0)
 
 #
 # Estimate frequency of rental events per hour and compute Jensen-Shannon distances between frequency curves
 #
 df_p = cmp_pdist_station_hour(df, station_key='station')
+df_p.to_csv('dfp_lon.csv')
 df_js_wd, df_js_we = cmp_js_station_station(df_p, station_key='station')
 p0 = viz_js_stations(df_js_wd)
-p0s = viz_pfunc_by_hour(df_p.loc[492, False])
-show(p0)
+#df_p = pd.read_csv('dfp_tpe.csv', index_col=(0,1,2))
+#西園艋舺路口
+#p0s = viz_pfunc_by_hour(df_p.loc['中正運動中心', False], y_range=(0.0,0.23))
+#show(p0s)
+
+#df_pp = pd.read_csv('freqs.csv', index_col=(1,2,3,5))
+#df_js_wd, df_js_we = cmp_js_station_station_cities(df_pp, station_key='station')
+#p000 = viz_js_stations_two(df_js_wd, manifold='MDS')
+#show(p000)
 
 #
 # Estimate R(h; S) distributions, as function of h and stations S
 #
-df_count_range = cmp_count_range_station_hour(df, station_key='station')
-print (df_count_range)
-p1 = viz_box_by_hour(df_count_range.loc[772, False])
+df_count_range, df_count_percentile = cmp_count_range_station_hour(df, station_key='station')
+#print (df_count_range)
+#p1 = viz_box_by_hour(df_count_range.loc['捷運台北101/世貿站', False])
+p1 = viz_box_by_hour(df_count_range.loc[193, False])
 show(p1)
+
+#
+# Estimate R(d; S) distributions, as function of day-type and stations S
+#
+df_count_range_d, df_count_percentile_d = cmp_count_range_station_d(df, station_key='station')
+df_count_range_d.to_csv('quants_lon.csv')
+p11 = viz_box_by_station(df_count_range_d, satsun=False)
+show(p11)
 
 #
 # Estimate covariance between hour and hour for each station
 #
-df_cov = cmp_count_cov_station_hour(df, station_key='station')
-print (df_cov)
-p2 = viz_cov_by_hour(df_cov.loc[772, False])
-show(p2)
+#df_cov = cmp_count_cov_station_hour(df, station_key='station')
+#print (df_cov)
+#p2 = viz_cov_by_hour(df_cov.loc[772, False])
+#show(p2)
 
 #
 # Collect 2020 data
@@ -108,7 +132,7 @@ show(p2)
 #df_2020 = gather_root(CITY_DATA[CITY_RUN]['blob'],
 #                      filter_func=filter_date_range,
 #                      lower='2020-01-01', upper='2020-07-31', time_key=CITY_DATA[CITY_RUN]['time_key_s'])
-#df_2020.to_csv('tmp_2020.csv')
+#df_2020.to_csv('tmp_2020_tpe.csv')
 #df_2020_s = cmp_counts_hour_resolve(df_2020,
 #                             station_key=CITY_DATA[CITY_RUN]['station_key_s'],
 #                             time_key=CITY_DATA[CITY_RUN]['time_key_s'])
@@ -121,10 +145,16 @@ show(p2)
 #
 #df_2020 = df_2020.loc[df_2020['station'].isin(stations_index)]
 #print (df_2020)
-#df_2020.to_csv('tmp1_2020.csv')
-df_2020 = pd.read_csv('tmp1_2020.csv', index_col=0)
+#df_2020.to_csv('tmp1_2020_tpe.csv')
+df_2020 = pd.read_csv('tmp1_2020_lon.csv', index_col=0)
 
-df_2020 = cmp_add_zeros(df_2020, station_key='station')
-df_2020_dist_wd, df_2020_dist_we = cmp_deviation(df_count_range, df_cov, df_2020, station_key='station')
-viz_dist_map(df_2020_dist_wd)
+df_2020_percentile = cmp_deviation(df_2020, df_count_percentile_d, station_key='station')
+df_2020_percentile = df_2020_percentile.loc[df_2020_percentile['week']<30]
+ppp = viz_dist_map(df_2020_percentile)
+show(ppp)
 
+df_tmp = df_2020_percentile.loc[df_2020_percentile['week'].isin([13,14,15])]
+print (df_tmp.sort_values(by='percentile'))
+
+ppp = viz_comp_by_hour(df_count_range.loc[625, False], df_2020.loc[df_2020['station']==625.0])
+show(ppp)
